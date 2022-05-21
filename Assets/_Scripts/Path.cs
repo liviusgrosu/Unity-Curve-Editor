@@ -93,38 +93,41 @@ public class Path
     public void MovePoint(int i, Vector2 position)
     {
         Vector2 deltaMove = position - points[i];
-        points[i] = position;
+        if (i % 3 == 0 || !autoSetControlPoints)
+        {
+            points[i] = position;
 
-        if (autoSetControlPoints)
-        {
-            AutoSetAllAffectedControlPoints(i);
-        }
-        else
-        {
-            // Moving an anchor point
-            if (i % 3 == 0)
+            if (autoSetControlPoints)
             {
-                // Move points connected to anchor the same way
-                if (i + 1 < points.Count || isClosed)
-                {
-                    points[LoopIndex(i + 1)] += deltaMove;
-                }
-                if (i - 1 > 0 || isClosed)
-                {
-                    points[LoopIndex(i - 1)] += deltaMove;
-                }
+                AutoSetAllAffectedControlPoints(i);
             }
             else
             {
-                bool isNextPointIsAnchor = (i + 1) % 3 == 0;
-                int correspondingControlIndex = isNextPointIsAnchor ? i + 2 : i - 2;
-                int anchorIndex = isNextPointIsAnchor ? i + 1 : i - 1;
-
-                if (correspondingControlIndex >= 0 && correspondingControlIndex < points.Count || isClosed)
+                // Moving an anchor point
+                if (i % 3 == 0)
                 {
-                    float distance = (points[LoopIndex(anchorIndex)] - points[LoopIndex(correspondingControlIndex)]).magnitude;
-                    Vector2 direction = (points[LoopIndex(anchorIndex)] - position).normalized;
-                    points[LoopIndex(correspondingControlIndex)] = points[LoopIndex(anchorIndex)] + direction * distance;
+                    // Move points connected to anchor the same way
+                    if (i + 1 < points.Count || isClosed)
+                    {
+                        points[LoopIndex(i + 1)] += deltaMove;
+                    }
+                    if (i - 1 > 0 || isClosed)
+                    {
+                        points[LoopIndex(i - 1)] += deltaMove;
+                    }
+                }
+                else
+                {
+                    bool isNextPointIsAnchor = (i + 1) % 3 == 0;
+                    int correspondingControlIndex = isNextPointIsAnchor ? i + 2 : i - 2;
+                    int anchorIndex = isNextPointIsAnchor ? i + 1 : i - 1;
+
+                    if (correspondingControlIndex >= 0 && correspondingControlIndex < points.Count || isClosed)
+                    {
+                        float distance = (points[LoopIndex(anchorIndex)] - points[LoopIndex(correspondingControlIndex)]).magnitude;
+                        Vector2 direction = (points[LoopIndex(anchorIndex)] - position).normalized;
+                        points[LoopIndex(correspondingControlIndex)] = points[LoopIndex(anchorIndex)] + direction * distance;
+                    }
                 }
             }
         }

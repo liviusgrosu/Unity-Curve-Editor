@@ -69,9 +69,10 @@ public class PathEditor : Editor
             Handles.DrawBezier(points[0], points[3], points[1], points[2], Color.green, null, 2f);
         }
 
-        Handles.color = Color.red;
+        
         for(int i = 0; i < path.NumPoints; i++)
         {
+            Handles.color = path.AutoSetControlPoints && i % 3 != 0 ? Color.gray : Color.red;
             Vector2 newPosition = Handles.FreeMoveHandle(path[i], Quaternion.identity, 0.1f, Vector2.zero, Handles.CylinderHandleCap);
             if (path[i] != newPosition)
             {
