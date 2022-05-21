@@ -21,10 +21,11 @@ public class PathEditor : Editor
             path = creator.path;
         }
 
-        if (GUILayout.Button("Toggle Closed"))
+        bool isClosed = GUILayout.Toggle(path.IsClosed, "Toggle Closed Path");
+        if (isClosed != path.IsClosed)
         {
             Undo.RecordObject(creator, "Toggle closed");
-            path.ToggleClosed();
+            path.IsClosed = isClosed;
         }
 
         bool autoSetControlPoints = GUILayout.Toggle(path.AutoSetControlPoints, "Auto Set Control Points");

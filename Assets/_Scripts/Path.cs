@@ -31,6 +31,43 @@ public class Path
         }
     }
 
+    public bool IsClosed
+    {
+        get
+        {
+            return isClosed;
+        }
+        set
+        {
+            if (isClosed != value)
+            {
+                isClosed = value;
+
+                if (isClosed)
+                {
+                    // Adding the missing controls points for first and last anchor points
+                    points.Add(points[points.Count - 1] * 2 - points[points.Count - 2]);
+                    points.Add(points[0] * 2 - points[1]);
+
+                    if (autoSetControlPoints)
+                    {
+                        AutoSetAnchorControlPoints(0);
+                        AutoSetAnchorControlPoints(points.Count - 3);
+                    }
+                }
+                else
+                {
+                    // Same thing as removing first and last control points. RemoveRange overlaps
+                    points.RemoveRange(points.Count - 2, 2);
+                    if (autoSetControlPoints)
+                    {
+                        AutoSetStartAndEndControls();
+                    }
+                }
+            }
+        }
+    }
+
     public int NumPoints
     {
         get
@@ -153,33 +190,6 @@ public class Path
                         points[LoopIndex(correspondingControlIndex)] = points[LoopIndex(anchorIndex)] + direction * distance;
                     }
                 }
-            }
-        }
-    }
-    
-    public void ToggleClosed()
-    {
-        isClosed = !isClosed;
-
-        if (isClosed)
-        {
-            // Adding the missing controls points for first and last anchor points
-            points.Add(points[points.Count - 1] * 2 - points[points.Count - 2]);
-            points.Add(points[0] * 2 - points[1]);
-            
-            if (autoSetControlPoints)
-            {
-                AutoSetAnchorControlPoints(0);
-                AutoSetAnchorControlPoints(points.Count - 3);
-            }
-        }
-        else
-        {
-            // Same thing as removing first and last control points. RemoveRange overlaps
-            points.RemoveRange(points.Count - 2, 2);
-            if (autoSetControlPoints)
-            {
-                AutoSetStartAndEndControls();
             }
         }
     }
