@@ -7,7 +7,16 @@ using UnityEditor;
 public class PathEditor : Editor
 {
     PathCreator creator;
-    Path path;
+    Path Path
+    {
+        get
+        {
+            return creator.path;
+        }
+    }
+
+    const float segmentSelectDistanceThreshold = 0.5f;
+    int selectedSegmentIndex = -1;
 
     public override void OnInspectorGUI()
     {
@@ -18,21 +27,20 @@ public class PathEditor : Editor
         {
             Undo.RecordObject(creator, "Create new");
             creator.CreatePath();
-            path = creator.path;
         }
 
-        bool isClosed = GUILayout.Toggle(path.IsClosed, "Toggle Closed Path");
-        if (isClosed != path.IsClosed)
+        bool isClosed = GUILayout.Toggle(Path.IsClosed, "Toggle Closed Path");
+        if (isClosed != Path.IsClosed)
         {
             Undo.RecordObject(creator, "Toggle closed");
-            path.IsClosed = isClosed;
+            Path.IsClosed = isClosed;
         }
 
-        bool autoSetControlPoints = GUILayout.Toggle(path.AutoSetControlPoints, "Auto Set Control Points");
-        if (autoSetControlPoints != path.AutoSetControlPoints)
+        bool autoSetControlPoints = GUILayout.Toggle(Path.AutoSetControlPoints, "Auto Set Control Points");
+        if (autoSetControlPoints != Path.AutoSetControlPoints)
         {
             Undo.RecordObject(creator, "Toggle auto set controls");
-            path.AutoSetControlPoints = autoSetControlPoints;
+            Path.AutoSetControlPoints = autoSetControlPoints;
         }
 
         if (EditorGUI.EndChangeCheck())
@@ -54,18 +62,26 @@ public class PathEditor : Editor
 
         if (guiEvent.type == EventType.MouseDown && guiEvent.button == 0 && guiEvent.shift)
         {
-            Undo.RecordObject(creator, "AddSegment");
-            path.AddSegement(mousePosition);
+            if (selectedSegmentIndex != -1)
+            {
+                Undo.RecordObject(creator, "Split Segment");
+                Path.SplitSegment(mousePosition, selectedSegmentIndex);
+            }
+            else if(!Path.IsClosed)
+            {
+                Undo.RecordObject(creator, "Add Segment");
+                Path.AddSegement(mousePosition);
+            }
         }
 
         if (guiEvent.type == EventType.MouseDown && guiEvent.button == 1)
         {
-            float minimumDistance = 0.05f;
+            float minimumDistance = creator.anchorDiameter * 0.5f;
             int closestAnchorIndex = -1;
 
-            for (int i = 0; i < path.NumPoints; i += 3)
+            for (int i = 0; i < Path.NumPoints; i += 3)
             {
-                float distance = Vector2.Distance(mousePosition, path[i]);
+                float distance = Vector2.Distance(mousePosition, Path[i]);
                 if (distance < minimumDistance)
                 {
                     minimumDistance = distance;
@@ -76,31 +92,68 @@ public class PathEditor : Editor
             if (closestAnchorIndex != -1)
             {
                 Undo.RecordObject(creator, "Delete segment");
-                path.DeleteSegment(closestAnchorIndex);
+                Path.DeleteSegment(closestAnchorIndex);
+            }
+        }
+
+        if (guiEvent.type == EventType.MouseMove)
+        {
+            float minimumDistanceToSegment = segmentSelectDistanceThreshold;
+            int newSelecectedSegmentIndex = -1;
+            for (int i = 0; i < Path.NumSegments; i++)
+            {
+                // Get distance from mouse point to segment bezier curve
+                Vector2[] points = Path.GetPointsInSegement(i);
+                float distance = HandleUtility.DistancePointBezier(mousePosition, points[0], points[3], points[1], points[2]);
+                if (distance < minimumDistanceToSegment)
+                {
+                    minimumDistanceToSegment = distance;
+                    newSelecectedSegmentIndex = i;
+                }
+            }
+
+            if (newSelecectedSegmentIndex != selectedSegmentIndex)
+            {
+                selectedSegmentIndex = newSelecectedSegmentIndex;
+                HandleUtility.Repaint();
             }
         }
     }
 
     private void Draw()
     {
-        for(int i = 0; i < path.NumSegments; i++)
+        for(int i = 0; i < Path.NumSegments; i++)
         {
-            Vector2[] points = path.GetPointsInSegement(i);
-            Handles.color = Color.black;
-            Handles.DrawLine(points[1], points[0]);
-            Handles.DrawLine(points[2], points[3]);
-            Handles.DrawBezier(points[0], points[3], points[1], points[2], Color.green, null, 2f);
+            Vector2[] points = Path.GetPointsInSegement(i);
+            if (creator.displayControlPoints)
+            {
+                Handles.color = Color.black;
+                // Draw the control points lines to anchor point
+                Handles.DrawLine(points[1], points[0]);
+                Handles.DrawLine(points[2], points[3]);
+            }
+
+            Color segmentColour = (i == selectedSegmentIndex && Event.current.shift) ? creator.selectedSegmentColour : creator.segmentColour;
+
+            // Draw curve between anchor points
+            Handles.DrawBezier(points[0], points[3], points[1], points[2], segmentColour, null, 2f);
         }
 
         
-        for(int i = 0; i < path.NumPoints; i++)
+        for(int i = 0; i < Path.NumPoints; i++)
         {
-            Handles.color = path.AutoSetControlPoints && i % 3 != 0 ? Color.gray : Color.red;
-            Vector2 newPosition = Handles.FreeMoveHandle(path[i], Quaternion.identity, 0.1f, Vector2.zero, Handles.CylinderHandleCap);
-            if (path[i] != newPosition)
+            //Handles.color = Path.AutoSetControlPoints && i % 3 != 0 ? Color.gray : Color.red;
+            if (i % 3 == 0 || creator.displayControlPoints)
             {
-                Undo.RecordObject(creator, "MovePoint");
-                path.MovePoint(i, newPosition);
+                Handles.color = (i % 3 == 0) ? creator.anchorColour : creator.controlColour;
+                float handleSize = (i % 3 == 0) ? creator.anchorDiameter : creator.controlDiameter;
+
+                Vector2 newPosition = Handles.FreeMoveHandle(Path[i], Quaternion.identity, handleSize, Vector2.zero, Handles.CylinderHandleCap);
+                if (Path[i] != newPosition)
+                {
+                    Undo.RecordObject(creator, "MovePoint");
+                    Path.MovePoint(i, newPosition);
+                }
             }
         }
     }
@@ -112,6 +165,5 @@ public class PathEditor : Editor
         {
             creator.CreatePath();
         }
-        path = creator.path;
     }
 }

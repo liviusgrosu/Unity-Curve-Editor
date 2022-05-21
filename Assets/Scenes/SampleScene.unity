@@ -154,21 +154,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   path:
     points:
-    - {x: -0.9664612, y: -0.6819585}
-    - {x: 0.9775684, y: -0.9965209}
-    - {x: 2.921598, y: -1.3110833}
-    - {x: 3.9961433, y: 1.0956044}
-    - {x: 4.5465317, y: 2.3283236}
-    - {x: 4.159456, y: 2.9442887}
-    - {x: 2.9771447, y: 3.5959518}
-    - {x: 0.38147736, y: 5.0266247}
-    - {x: -1.2354518, y: 5.036085}
-    - {x: -2.8586295, y: 2.5562449}
-    - {x: -3.4756603, y: 1.6135645}
-    - {x: -2.9044232, y: 0.98929954}
-    - {x: -2.3331864, y: 0.36503458}
+    - {x: -1, y: 0}
+    - {x: -0.5, y: 0.5}
+    - {x: 0.5, y: -0.5}
+    - {x: 1, y: 0}
     isClosed: 0
-    autoSetControlPoints: 1
+    autoSetControlPoints: 0
+  anchorColour: {r: 1, g: 0, b: 0, a: 1}
+  controlColour: {r: 1, g: 1, b: 1, a: 1}
+  segmentColour: {r: 0, g: 1, b: 0, a: 1}
+  selectedSegmentColour: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  anchorDiameter: 0.1
+  controlDiameter: 0.075
+  displayControlPoints: 1
 --- !u!4 &192193528
 Transform:
   m_ObjectHideFlags: 0
