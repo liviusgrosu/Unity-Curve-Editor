@@ -56,6 +56,28 @@ public class PathEditor : Editor
             Undo.RecordObject(creator, "AddSegment");
             path.AddSegement(mousePosition);
         }
+
+        if (guiEvent.type == EventType.MouseDown && guiEvent.button == 1)
+        {
+            float minimumDistance = 0.05f;
+            int closestAnchorIndex = -1;
+
+            for (int i = 0; i < path.NumPoints; i += 3)
+            {
+                float distance = Vector2.Distance(mousePosition, path[i]);
+                if (distance < minimumDistance)
+                {
+                    minimumDistance = distance;
+                    closestAnchorIndex = i;
+                }
+            }
+
+            if (closestAnchorIndex != -1)
+            {
+                Undo.RecordObject(creator, "Delete segment");
+                path.DeleteSegment(closestAnchorIndex);
+            }
+        }
     }
 
     private void Draw()
