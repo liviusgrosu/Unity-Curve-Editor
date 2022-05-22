@@ -11,12 +11,16 @@ public class RoadCreator : MonoBehaviour
     [Range(0.01f, 1.5f)]
     public float Spacing = 1f;
     public bool AutoUpdate;
+    public float tiling = 1f;
 
     public void UpdateRoad()
     {
         Path path = GetComponent<PathCreator>().path;
         Vector2[] points = path.CalculateEvenlySpacedPoints(Spacing);
         GetComponent<MeshFilter>().mesh = CreateRoadMesh(points, path.IsClosed);
+
+        int textureRepeat = Mathf.RoundToInt(tiling * points.Length * Spacing * 0.05f);
+        GetComponent<MeshRenderer>().sharedMaterial.mainTextureScale = new Vector2(1, textureRepeat);
     }
 
     private Mesh CreateRoadMesh(Vector2[] points, bool isClosed)
