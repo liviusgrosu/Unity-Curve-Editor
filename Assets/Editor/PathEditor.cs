@@ -118,6 +118,9 @@ public class PathEditor : Editor
                 HandleUtility.Repaint();
             }
         }
+
+        // Stops the mesh from being selected
+        HandleUtility.AddDefaultControl(0);
     }
 
     private void Draw()

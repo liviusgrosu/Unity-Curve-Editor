@@ -211,7 +211,7 @@ public class Path
     {
         List<Vector2> evenlySpacedPoints = new List<Vector2>();
         evenlySpacedPoints.Add(points[0]);
-        Vector2 previosPoint = points[0];
+        Vector2 previousPoint = points[0];
         float distanceSinceLastEvenPoint = 0;
 
         for (int segmentIndex = 0; segmentIndex < NumSegments; segmentIndex++)
@@ -225,19 +225,22 @@ public class Path
             while(t <= 1)
             {
                 t += 1f / divisions;
+                // Get the point on the curve
                 Vector2 pointOnCurve = Bezier.EvaluateCubic(points[0], points[1], points[2], points[3], t);
-                distanceSinceLastEvenPoint += Vector2.Distance(previosPoint, pointOnCurve);
+                // Get distance from the last point
+                distanceSinceLastEvenPoint += Vector2.Distance(previousPoint, pointOnCurve);
 
                 while (distanceSinceLastEvenPoint >= spacing)
                 {
+                    // If overshot the distance to the next point, take the new point back by how much it overshot
                     float overshootDistance = distanceSinceLastEvenPoint - spacing;
-                    Vector2 newEvenlySpacedPoint = pointOnCurve + (previosPoint - pointOnCurve).normalized * overshootDistance;
+                    Vector2 newEvenlySpacedPoint = pointOnCurve + (previousPoint - pointOnCurve).normalized * overshootDistance;
                     evenlySpacedPoints.Add(newEvenlySpacedPoint);
                     distanceSinceLastEvenPoint = overshootDistance;
-                    previosPoint = newEvenlySpacedPoint;
+                    previousPoint = newEvenlySpacedPoint;
                 }
 
-                previosPoint = pointOnCurve;
+                previousPoint = pointOnCurve;
             }
         }
 
