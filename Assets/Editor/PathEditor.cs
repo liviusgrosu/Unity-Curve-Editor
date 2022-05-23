@@ -76,6 +76,12 @@ public class PathEditor : Editor
 
         for (int i = 0; i < Path.NumPoints; i++)
         {
+            // Ignore if point is already selected
+            if (i == selectedAnchorPoint || i == selectedControlPointA || i == selectedControlPointB)
+            {
+                continue;
+            }
+
             Vector3 point = Path[i];
 
             float x = point.x - mouseRay.origin.x;
@@ -94,7 +100,6 @@ public class PathEditor : Editor
             if (D < 0.005f)
             {
                 hoverOverPoint = i;
-                Debug.Log("Hovering over a point");
             }
         }
     }
