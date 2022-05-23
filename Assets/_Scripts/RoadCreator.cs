@@ -51,7 +51,7 @@ public class RoadCreator : MonoBehaviour
             // take average of first and second conditions. Not first or last point
             forward.Normalize();
             // Perpindicular vector
-            Vector3 left = new Vector3(-forward.y, forward.x);
+            Vector3 left = new Vector3(-forward.z, 0f, forward.x);
 
             // Add the two points
             vertices[vertexIndex] = points[i] + left * RoadWidth * 0.5f;
