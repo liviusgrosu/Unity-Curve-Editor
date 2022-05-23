@@ -22,6 +22,7 @@ public class PathEditor : Editor
 
     const float segmentSelectDistanceThreshold = 0.5f;
     int selectedSegmentIndex = -1;
+    Plane xzPlane = new Plane(Vector3.up, Vector3.zero);
 
     public override void OnInspectorGUI()
     {
@@ -98,6 +99,21 @@ public class PathEditor : Editor
         Vector2 mousePosition = HandleUtility.GUIPointToWorldRay(guiEvent.mousePosition).origin;
         // Convert mouse position to world position via a ray
         Ray mouseRay = HandleUtility.GUIPointToWorldRay(guiEvent.mousePosition);
+        
+        
+        Vector3 xyPoint = Vector3.zero;
+        float hitdist = 0.0f;
+
+        // Get the point that intersects with mouse ray and xz plane and use it for adding new segments
+        if (xzPlane.Raycast(mouseRay, out hitdist))
+        {
+            xyPoint = mouseRay.GetPoint(hitdist);
+        }
+        // When point is behind plane
+        if (hitdist < -1.0f)
+        {
+            xyPoint = mouseRay.GetPoint(-hitdist);
+        }
 
         if (guiEvent.type == EventType.MouseDown && guiEvent.button == 0)
         {
@@ -111,7 +127,7 @@ public class PathEditor : Editor
                 else if (!Path.IsClosed)
                 {
                     Undo.RecordObject(creator, "Add Segment");
-                    Path.AddSegement(mousePosition);
+                    Path.AddSegement(xyPoint);
                 }
             }
             else
