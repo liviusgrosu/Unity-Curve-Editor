@@ -16,14 +16,14 @@ public class RoadCreator : MonoBehaviour
     public void UpdateRoad()
     {
         Path path = GetComponent<PathCreator>().path;
-        Vector2[] points = path.CalculateEvenlySpacedPoints(Spacing);
+        Vector3[] points = path.CalculateEvenlySpacedPoints(Spacing);
         GetComponent<MeshFilter>().mesh = CreateRoadMesh(points, path.IsClosed);
 
         int textureRepeat = Mathf.RoundToInt(tiling * points.Length * Spacing * 0.05f);
         GetComponent<MeshRenderer>().sharedMaterial.mainTextureScale = new Vector2(1, textureRepeat);
     }
 
-    private Mesh CreateRoadMesh(Vector2[] points, bool isClosed)
+    private Mesh CreateRoadMesh(Vector3[] points, bool isClosed)
     {
         // 2n
         Vector3[] vertices = new Vector3[points.Length * 2];
@@ -36,7 +36,7 @@ public class RoadCreator : MonoBehaviour
 
         for (int i = 0; i < points.Length; i++)
         {
-            Vector2 forward = Vector2.zero;
+            Vector3 forward = Vector3.zero;
             // Not the last point
             if (i < points.Length - 1 || isClosed)
             {
@@ -51,7 +51,7 @@ public class RoadCreator : MonoBehaviour
             // take average of first and second conditions. Not first or last point
             forward.Normalize();
             // Perpindicular vector
-            Vector2 left = new Vector2(-forward.y, forward.x);
+            Vector3 left = new Vector3(-forward.y, forward.x);
 
             // Add the two points
             vertices[vertexIndex] = points[i] + left * RoadWidth * 0.5f;
