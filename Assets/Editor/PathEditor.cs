@@ -32,10 +32,7 @@ public class PathEditor : Editor
         {
             Undo.RecordObject(creator, "Create new");
             creator.CreatePath();
-            
-            selectedAnchorPoint = -1;
-            selectedControlPointA = -1;
-            selectedControlPointB = -1;
+            ResetSelected();
         }
 
         bool isClosed = GUILayout.Toggle(Path.IsClosed, "Toggle Closed Path");
@@ -43,10 +40,7 @@ public class PathEditor : Editor
         {
             Undo.RecordObject(creator, "Toggle closed");
             Path.IsClosed = isClosed;
-            
-            selectedAnchorPoint = -1;
-            selectedControlPointA = -1;
-            selectedControlPointB = -1;
+            ResetSelected();
         }
 
         bool autoSetControlPoints = GUILayout.Toggle(Path.AutoSetControlPoints, "Auto Set Control Points");
@@ -74,14 +68,8 @@ public class PathEditor : Editor
         hoverOverPoint = -1;
         Vector3 mouseDir = mouseRay.direction.normalized;
 
-        for (int i = 0; i < Path.NumPoints; i++)
+        for (int i = 0; i < Path.NumPoints; i += 3)
         {
-            // Ignore if point is already selected
-            if (i == selectedAnchorPoint || i == selectedControlPointA || i == selectedControlPointB)
-            {
-                continue;
-            }
-
             Vector3 point = Path[i];
 
             float x = point.x - mouseRay.origin.x;
@@ -128,7 +116,8 @@ public class PathEditor : Editor
             }
             else
             {
-                if (hoverOverPoint != -1)
+                // Can't select if its already selected
+                if (hoverOverPoint != -1 && hoverOverPoint != selectedAnchorPoint)
                 {
                     Undo.RecordObject(creator, "Select segment");
                     // Reset the control points
@@ -157,23 +146,11 @@ public class PathEditor : Editor
 
         if (guiEvent.type == EventType.MouseDown && guiEvent.button == 1)
         {
-            float minimumDistance = creator.anchorDiameter * 0.5f;
-            int closestAnchorIndex = -1;
-
-            for (int i = 0; i < Path.NumPoints; i += 3)
-            {
-                float distance = Vector2.Distance(mousePosition, Path[i]);
-                if (distance < minimumDistance)
-                {
-                    minimumDistance = distance;
-                    closestAnchorIndex = i;
-                }
-            }
-
-            if (closestAnchorIndex != -1)
+            if (hoverOverPoint != -1)
             {
                 Undo.RecordObject(creator, "Delete segment");
-                Path.DeleteSegment(closestAnchorIndex);
+                ResetSelected();
+                Path.DeleteSegment(hoverOverPoint);
             }
         }
 
@@ -256,5 +233,12 @@ public class PathEditor : Editor
         {
             creator.CreatePath();
         }
+    }
+
+    private void ResetSelected()
+    {
+        selectedAnchorPoint = -1;
+        selectedControlPointA = -1;
+        selectedControlPointB = -1;
     }
 }
