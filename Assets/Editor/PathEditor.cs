@@ -15,6 +15,10 @@ public class PathEditor : Editor
         }
     }
 
+    int selectedAnchorPoint = -1;
+    int selectedControlPointA = -1;
+    int selectedControlPointB = -1;
+
     const float segmentSelectDistanceThreshold = 0.5f;
     int selectedSegmentIndex = -1;
 
@@ -27,6 +31,10 @@ public class PathEditor : Editor
         {
             Undo.RecordObject(creator, "Create new");
             creator.CreatePath();
+            
+            selectedAnchorPoint = -1;
+            selectedControlPointA = -1;
+            selectedControlPointB = -1;
         }
 
         bool isClosed = GUILayout.Toggle(Path.IsClosed, "Toggle Closed Path");
@@ -34,6 +42,10 @@ public class PathEditor : Editor
         {
             Undo.RecordObject(creator, "Toggle closed");
             Path.IsClosed = isClosed;
+            
+            selectedAnchorPoint = -1;
+            selectedControlPointA = -1;
+            selectedControlPointB = -1;
         }
 
         bool autoSetControlPoints = GUILayout.Toggle(Path.AutoSetControlPoints, "Auto Set Control Points");
@@ -60,17 +72,60 @@ public class PathEditor : Editor
         Event guiEvent = Event.current;
         Vector2 mousePosition = HandleUtility.GUIPointToWorldRay(guiEvent.mousePosition).origin;
 
-        if (guiEvent.type == EventType.MouseDown && guiEvent.button == 0 && guiEvent.shift)
+        if (guiEvent.type == EventType.MouseDown && guiEvent.button == 0)
         {
-            if (selectedSegmentIndex != -1)
+            if (guiEvent.shift)
             {
-                Undo.RecordObject(creator, "Split Segment");
-                Path.SplitSegment(mousePosition, selectedSegmentIndex);
+                if (selectedSegmentIndex != -1)
+                {
+                    Undo.RecordObject(creator, "Split Segment");
+                    Path.SplitSegment(mousePosition, selectedSegmentIndex);
+                }
+                else if (!Path.IsClosed)
+                {
+                    Undo.RecordObject(creator, "Add Segment");
+                    Path.AddSegement(mousePosition);
+                }
             }
-            else if(!Path.IsClosed)
+            else
             {
-                Undo.RecordObject(creator, "Add Segment");
-                Path.AddSegement(mousePosition);
+                float minimumDistance = creator.anchorDiameter * 0.5f;
+                int closestAnchorIndex = -1;
+
+                for (int i = 0; i < Path.NumPoints; i += 3)
+                {
+                    float distance = Vector2.Distance(mousePosition, Path[i]);
+                    if (distance < minimumDistance)
+                    {
+                        minimumDistance = distance;
+                        closestAnchorIndex = i;
+                    }
+                }
+
+                if (closestAnchorIndex != -1)
+                {
+                    Undo.RecordObject(creator, "Select segment");
+                    // Reset the control points
+                    selectedControlPointA = -1;
+                    selectedControlPointB = -1;
+                    // Select new anchor point
+                    selectedAnchorPoint = closestAnchorIndex;
+
+                    // Select corresponding control points
+                    if (!Path.IsClosed && selectedAnchorPoint == 0)
+                    {
+                        selectedControlPointB = closestAnchorIndex + 1;
+                    }
+                    else if (!Path.IsClosed && selectedAnchorPoint == Path.NumPoints - 1)
+                    {
+                        selectedControlPointA = closestAnchorIndex - 1;
+                    }
+                    else
+                    {
+                        selectedControlPointA = (closestAnchorIndex - 1 + Path.NumPoints) % Path.NumPoints;
+                        selectedControlPointB = (closestAnchorIndex + 1 + Path.NumPoints) % Path.NumPoints;
+                    }
+                }
             }
         }
 
@@ -128,14 +183,6 @@ public class PathEditor : Editor
         for(int i = 0; i < Path.NumSegments; i++)
         {
             Vector2[] points = Path.GetPointsInSegement(i);
-            if (creator.displayControlPoints)
-            {
-                Handles.color = Color.black;
-                // Draw the control points lines to anchor point
-                Handles.DrawLine(points[1], points[0]);
-                Handles.DrawLine(points[2], points[3]);
-            }
-
             Color segmentColour = (i == selectedSegmentIndex && Event.current.shift) ? creator.selectedSegmentColour : creator.segmentColour;
 
             // Draw curve between anchor points
@@ -145,19 +192,32 @@ public class PathEditor : Editor
         
         for(int i = 0; i < Path.NumPoints; i++)
         {
-            //Handles.color = Path.AutoSetControlPoints && i % 3 != 0 ? Color.gray : Color.red;
-            if (i % 3 == 0 || creator.displayControlPoints)
+            if (i % 3 == 0 || (selectedAnchorPoint != -1 && (selectedAnchorPoint == i || selectedControlPointA == i || selectedControlPointB == i)))
             {
                 Handles.color = (i % 3 == 0) ? creator.anchorColour : creator.controlColour;
-                float handleSize = (i % 3 == 0) ? creator.anchorDiameter : creator.controlDiameter;
-
-                Vector2 newPosition = Handles.FreeMoveHandle(Path[i], Quaternion.identity, handleSize, Vector2.zero, Handles.CylinderHandleCap);
-                if (Path[i] != newPosition)
+                Handles.SphereHandleCap(0, Path[i], Quaternion.LookRotation(Vector3.up), 0.1f, EventType.Repaint);
+                // Select the anchor point and its corresponding control points
+                if (selectedAnchorPoint != -1 && (selectedAnchorPoint == i || selectedControlPointA == i || selectedControlPointB == i))
                 {
-                    Undo.RecordObject(creator, "MovePoint");
-                    Path.MovePoint(i, newPosition);
+                    Vector2 newPosition = Handles.PositionHandle(Path[i], Quaternion.identity);
+                    if (Path[i] != newPosition) 
+                    {
+                        Undo.RecordObject(creator, "MovePoint");
+                        Path.MovePoint(i, newPosition);
+                    }
                 }
             }
+        }
+
+        // Display the lines between the control and anchor point
+        Handles.color = Color.black;
+        if (selectedControlPointA != -1)
+        {
+            Handles.DrawLine(Path[selectedAnchorPoint], Path[selectedControlPointA]);
+        }
+        if (selectedControlPointB != -1)
+        {
+            Handles.DrawLine(Path[selectedAnchorPoint], Path[selectedControlPointB]);
         }
     }
 
