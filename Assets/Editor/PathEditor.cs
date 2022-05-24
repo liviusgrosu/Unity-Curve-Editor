@@ -267,7 +267,21 @@ public class PathEditor : Editor
 
                     if (i % 3 == 0)
                     {
-                        Quaternion newRotation = Handles.Disc(Quaternion.identity, Path[i], new Vector3(1, 0, 0), 1, false, 1);
+                        // Use control points to get the forward direction of the disc handle
+                        Vector3 forwardDirection = Vector3.zero;
+                        if (i == 0)
+                        {
+                            forwardDirection = Path[i + 1] - Path[i];
+                        }
+                        else if (i == Path.NumPoints - 1)
+                        {
+                            forwardDirection = Path[i - 1] - Path[i];
+                        }
+                        else
+                        {
+                            forwardDirection = Path[i + 1] - Path[i - 1];
+                        }
+                        Quaternion newRotation = Handles.Disc(Quaternion.identity, Path[i], forwardDirection, 1, false, 1);
 
                         if (Path.Rotations[i / 3] != newRotation)
                         {
