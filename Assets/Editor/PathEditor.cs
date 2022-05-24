@@ -122,7 +122,7 @@ public class PathEditor : Editor
                 if (selectedSegmentIndex != -1)
                 {
                     Undo.RecordObject(creator, "Split Segment");
-                    Path.SplitSegment(mousePosition, selectedSegmentIndex);
+                    Path.SplitSegment(xyPoint, selectedSegmentIndex);
                 }
                 else if (!Path.IsClosed)
                 {
@@ -172,17 +172,26 @@ public class PathEditor : Editor
 
         if (guiEvent.type == EventType.MouseMove)
         {
-            float minimumDistanceToSegment = segmentSelectDistanceThreshold;
+            float smallestDistanceToSegment = Mathf.Infinity;
             int newSelecectedSegmentIndex = -1;
+
             for (int i = 0; i < Path.NumSegments; i++)
             {
-                // Get distance from mouse point to segment bezier curve
+                Vector3 closestPoint1, closestPoint2;
                 Vector3[] points = Path.GetPointsInSegement(i);
-                float distance = HandleUtility.DistancePointBezier(mousePosition, points[0], points[3], points[1], points[2]);
-                if (distance < minimumDistanceToSegment)
+                Vector3 segmentLine = points[3] - points[0];
+
+                Vector3 sampleMousePoint = mouseRay.origin + mouseRay.direction * 0.5f;
+                Vector3 sampleSegmentPoint = points[0] + segmentLine * 0.5f;
+
+                if (ClosestPointsOnTwoLines(out closestPoint1, out closestPoint2, sampleMousePoint, mouseRay.direction, sampleSegmentPoint, segmentLine))
                 {
-                    minimumDistanceToSegment = distance;
-                    newSelecectedSegmentIndex = i;
+                    float distance = Vector3.Distance(closestPoint1, closestPoint2);
+                    if (distance < smallestDistanceToSegment)
+                    {
+                        smallestDistanceToSegment = distance;
+                        newSelecectedSegmentIndex = i;
+                    }
                 }
             }
 
@@ -195,8 +204,37 @@ public class PathEditor : Editor
 
         // Stops the mesh from being selected
         HandleUtility.AddDefaultControl(0);
-
         UpdateMouseOverInfo(mouseRay);
+    }
+
+    public bool ClosestPointsOnTwoLines(out Vector3 closestPointLine1, out Vector3 closestPointLine2, Vector3 linePoint1, Vector3 lineVec1, Vector3 linePoint2, Vector3 lineVec2)
+    {
+        closestPointLine1 = Vector3.zero;
+        closestPointLine2 = Vector3.zero;
+
+        float a = Vector3.Dot(lineVec1, lineVec1);
+        float b = Vector3.Dot(lineVec1, lineVec2);
+        float e = Vector3.Dot(lineVec2, lineVec2);
+
+        float d = a * e - b * b;
+
+        //lines are not parallel
+        if (d != 0.0f)
+        {
+            Vector3 r = linePoint1 - linePoint2;
+            float c = Vector3.Dot(lineVec1, r);
+            float f = Vector3.Dot(lineVec2, r);
+
+            float s = (b * f - c * e) / d;
+            float t = (a * f - c * b) / d;
+
+            closestPointLine1 = linePoint1 + lineVec1 * s;
+            closestPointLine2 = linePoint2 + lineVec2 * t;
+
+            return true;
+        }
+
+        return false;
     }
 
     private void Draw()
