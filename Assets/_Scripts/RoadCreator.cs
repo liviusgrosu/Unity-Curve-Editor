@@ -17,6 +17,8 @@ public class RoadCreator : MonoBehaviour
     {
         Path path = GetComponent<PathCreator>().path;
         Vector3[] points = path.CalculateEvenlySpacedPoints(Spacing);
+        // TODO: grab the rotations here as well
+        // Pass angles to createroadmesh
         GetComponent<MeshFilter>().mesh = CreateRoadMesh(points, path.IsClosed);
 
         int textureRepeat = Mathf.RoundToInt(tiling * points.Length * Spacing * 0.05f);
@@ -52,6 +54,10 @@ public class RoadCreator : MonoBehaviour
             forward.Normalize();
             // Perpindicular vector
             Vector3 left = new Vector3(-forward.z, 0f, forward.x);
+            
+            // --- TEMP ---
+            // left = Quaternion.AngleAxis(angle, forward) * left;
+            // ------------
 
             // Add the two points
             vertices[vertexIndex] = points[i] + left * RoadWidth * 0.5f;

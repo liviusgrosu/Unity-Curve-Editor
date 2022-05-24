@@ -8,6 +8,10 @@ public class Path
     [SerializeField, HideInInspector]
     List<Vector3> points;
     [SerializeField, HideInInspector]
+    List<Quaternion> rotations;
+    [SerializeField, HideInInspector]
+    List<float> angles;
+    [SerializeField, HideInInspector]
     bool isClosed;
     [SerializeField, HideInInspector]
     bool autoSetControlPoints;
@@ -21,6 +25,18 @@ public class Path
             centre + (Vector3.right + Vector3.back) * 0.5f,
             centre + (Vector3.right)
         };
+
+        rotations = new List<Quaternion>
+        {
+            Quaternion.identity,
+            Quaternion.identity
+        };
+
+        angles = new List<float>
+        {
+            0f,
+            0f
+        };
     }
 
     public Vector3 this[int i]
@@ -28,6 +44,14 @@ public class Path
         get
         {
             return points[i];
+        }
+    }
+
+    public List<Quaternion> Rotations
+    {
+        get
+        {
+            return rotations;
         }
     }
 
@@ -114,11 +138,15 @@ public class Path
         {
             AutoSetAllAffectedControlPoints(points.Count - 1);
         }
+
+        rotations.Add(Quaternion.identity);
+        angles.Add(0);
     }
 
     public void SplitSegment(Vector3 anchorPosition, int segmentIndex)
     {
         points.InsertRange(segmentIndex * 3 + 2, new Vector3[] { Vector3.zero, anchorPosition, Vector3.zero });
+        
         if (autoSetControlPoints)
         {
             AutoSetAllAffectedControlPoints(segmentIndex * 3 + 3);
@@ -127,6 +155,9 @@ public class Path
         {
             AutoSetAnchorControlPoints(segmentIndex * 3 + 3);
         }
+
+        rotations.Add(Quaternion.identity);
+        angles.Add(0);
     }
 
     public void DeleteSegment(int anchorIndex)
@@ -151,6 +182,8 @@ public class Path
                 points.RemoveRange(anchorIndex - 1, 3);
             }
         }
+        rotations.RemoveAt(anchorIndex);
+        angles.RemoveAt(anchorIndex);
     }
 
     public Vector3[] GetPointsInSegement(int i)
@@ -162,6 +195,44 @@ public class Path
             points[i * 3 + 2], 
             points[LoopIndex(i * 3 + 3)]
         };
+    }
+
+    public void RotatePoint(int i, Quaternion rotation)
+    {
+        /*
+        Vector3 forwardOld = rotations[i] * Vector3.forward;
+        Vector3 forwardNew = rotation * Vector3.forward;
+
+        float angleOld = Mathf.Atan2(forwardOld.x, forwardOld.z) * Mathf.Rad2Deg;
+        float angleNew = Mathf.Atan2(forwardNew.x, forwardNew.z) * Mathf.Rad2Deg;
+
+        float angleDifference = Mathf.DeltaAngle(angleOld, angleNew);
+        
+
+        rotations[i] = rotation;
+        angles[i] += angleDifference;
+        Debug.Log($"Point {i} angle: {angleDifference}");
+        */
+
+        /* 
+        float angle = Quaternion.Angle(rotation, rotations[i]);
+        rotations[i] = rotation;
+        angles[i] = angle;
+        Debug.Log($"Point {i} angle: {angles[i]}");
+        */
+
+        float angle = 0f;
+
+        Vector3 angleAxis = Vector3.zero;
+        (rotation * Quaternion.Inverse(rotations[i])).ToAngleAxis(out angle, out angleAxis);
+        if (Vector3.Angle(Vector3.forward, angleAxis) > 90f)
+        {
+            angle = -angle;
+        }
+        rotations[i] = rotation;
+        angles[i] = angle;
+
+        Debug.Log($"Point {i} angle: {angles[i]}");
     }
 
     public void MovePoint(int i, Vector3 position)

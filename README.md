@@ -5,3 +5,5 @@ https://www.youtube.com/watch?v=RF04Fi9OCPc&list=PLFt_AvWsXl0d8aDaovNztYf6iTChHz
 https://answers.unity.com/questions/660369/how-to-convert-python-in-to-c-maths.html
 
 https://www.youtube.com/watch?v=HC5YikQxwZA
+
+https://answers.unity.com/questions/599393/angles-from-quaternionvector-problem.html

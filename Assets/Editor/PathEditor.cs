@@ -264,6 +264,17 @@ public class PathEditor : Editor
                         Undo.RecordObject(creator, "MovePoint");
                         Path.MovePoint(i, newPosition);
                     }
+
+                    if (i % 3 == 0)
+                    {
+                        Quaternion newRotation = Handles.Disc(Quaternion.identity, Path[i], new Vector3(1, 0, 0), 1, false, 1);
+
+                        if (Path.Rotations[i / 3] != newRotation)
+                        {
+                            Undo.RecordObject(creator, "RotatePoint");
+                            Path.RotatePoint(i / 3, newRotation);
+                        }
+                    }
                 }
             }
         }
