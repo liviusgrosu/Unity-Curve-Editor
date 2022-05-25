@@ -93,7 +93,7 @@ public class RoadCreator : MonoBehaviour
             forward.Normalize();
             // Perpindicular vector
             Vector3 left = new Vector3(-forward.z, 0f, forward.x);
-            float lerpedAngle = Mathf.Lerp(angles[currentAnchorIndex], angles[currentAnchorIndex + 1], currentLerpPoint / totalPoints);
+            float lerpedAngle = Mathf.Lerp(angles[currentAnchorIndex], angles[currentAnchorIndex + 1], (float)currentLerpPoint / (float)totalPoints);
 
 
             // --- TEMP ---
