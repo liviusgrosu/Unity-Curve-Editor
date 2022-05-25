@@ -6,11 +6,11 @@ using UnityEngine;
 public class Path
 {
     [SerializeField, HideInInspector]
-    List<Vector3> points;
+    public List<Vector3> points;
     [SerializeField, HideInInspector]
     List<Quaternion> rotations;
     [SerializeField, HideInInspector]
-    List<float> angles;
+    public List<float> Angles;
     [SerializeField, HideInInspector]
     bool isClosed;
     [SerializeField, HideInInspector]
@@ -32,7 +32,7 @@ public class Path
             Quaternion.identity
         };
 
-        angles = new List<float>
+        Angles = new List<float>
         {
             0f,
             0f
@@ -140,7 +140,7 @@ public class Path
         }
 
         rotations.Add(Quaternion.identity);
-        angles.Add(0);
+        Angles.Add(0);
     }
 
     public void SplitSegment(Vector3 anchorPosition, int segmentIndex)
@@ -157,7 +157,7 @@ public class Path
         }
 
         rotations.Add(Quaternion.identity);
-        angles.Add(0);
+        Angles.Add(0);
     }
 
     public void DeleteSegment(int anchorIndex)
@@ -183,7 +183,7 @@ public class Path
             }
         }
         rotations.RemoveAt(anchorIndex);
-        angles.RemoveAt(anchorIndex);
+        Angles.RemoveAt(anchorIndex);
     }
 
     public Vector3[] GetPointsInSegement(int i)
@@ -199,27 +199,6 @@ public class Path
 
     public void RotatePoint(int i, Quaternion rotation)
     {
-        /*
-        Vector3 forwardOld = rotations[i] * Vector3.forward;
-        Vector3 forwardNew = rotation * Vector3.forward;
-
-        float angleOld = Mathf.Atan2(forwardOld.x, forwardOld.z) * Mathf.Rad2Deg;
-        float angleNew = Mathf.Atan2(forwardNew.x, forwardNew.z) * Mathf.Rad2Deg;
-
-        float angleDifference = Mathf.DeltaAngle(angleOld, angleNew);
-        
-
-        rotations[i] = rotation;
-        angles[i] += angleDifference;
-        Debug.Log($"Point {i} angle: {angleDifference}");
-        */
-
-        /* 
-        float angle = Quaternion.Angle(rotation, rotations[i]);
-        rotations[i] = rotation;
-        angles[i] = angle;
-        Debug.Log($"Point {i} angle: {angles[i]}");
-        */
 
         float angle = 0f;
 
@@ -230,9 +209,7 @@ public class Path
             angle = -angle;
         }
         rotations[i] = rotation;
-        angles[i] = angle;
-
-        Debug.Log($"Point {i} angle: {angles[i]}");
+        Angles[i] = angle;
     }
 
     public void MovePoint(int i, Vector3 position)

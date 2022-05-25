@@ -12,20 +12,26 @@ public class RoadCreator : MonoBehaviour
     public float Spacing = 1f;
     public bool AutoUpdate;
     public float tiling = 1f;
+    private List<int> anchorPointEquivalents;
 
     public void UpdateRoad()
     {
+        anchorPointEquivalents = new List<int>();
         Path path = GetComponent<PathCreator>().path;
+
         Vector3[] points = path.CalculateEvenlySpacedPoints(Spacing);
+
+        GenerateAnchorPointsEquivalents(path.points.ToArray(), points);
+
         // TODO: grab the rotations here as well
         // Pass angles to createroadmesh
-        GetComponent<MeshFilter>().mesh = CreateRoadMesh(points, path.IsClosed);
+        GetComponent<MeshFilter>().mesh = CreateRoadMesh(points, path.IsClosed, path.Angles);
 
         int textureRepeat = Mathf.RoundToInt(tiling * points.Length * Spacing * 0.05f);
         GetComponent<MeshRenderer>().sharedMaterial.mainTextureScale = new Vector2(1, textureRepeat);
     }
 
-    private Mesh CreateRoadMesh(Vector3[] points, bool isClosed)
+    private Mesh CreateRoadMesh(Vector3[] points, bool isClosed, List<float> angles)
     {
         // 2n
         Vector3[] vertices = new Vector3[points.Length * 2];
@@ -36,8 +42,41 @@ public class RoadCreator : MonoBehaviour
         int vertexIndex = 0;
         int triangleIndex = 0;
 
+        // ---
+        int currentAnchorIndex = 0;
+
+        int currentEvenlySpacedIndex = 0;
+        int nextEvenlySpacedIndex = 0;
+        
+        int totalPoints = 0;
+        int currentLerpPoint = 0;
+        // ---
+
         for (int i = 0; i < points.Length; i++)
         {
+            // If the current evenly spaced point is a anchor equivalent
+            if (anchorPointEquivalents.Contains(i))
+            {
+                // Then we know to start lerping new rotations
+                // Get the index of the anchor point such that we can grab the angle 
+                // Store the current and next angle
+                // Get the difference between the two evenly spread points (how many points between)
+
+
+                // Get the index of the anchor equivalent
+                currentAnchorIndex = anchorPointEquivalents.IndexOf(i);
+
+                currentEvenlySpacedIndex = i;
+                nextEvenlySpacedIndex = anchorPointEquivalents[(currentAnchorIndex + 1 + anchorPointEquivalents.Count) % anchorPointEquivalents.Count];
+                
+                totalPoints = nextEvenlySpacedIndex - currentEvenlySpacedIndex;
+                currentLerpPoint = 0;
+            }
+            else
+            {
+                currentLerpPoint++;
+            }
+
             Vector3 forward = Vector3.zero;
             // Not the last point
             if (i < points.Length - 1 || isClosed)
@@ -54,9 +93,11 @@ public class RoadCreator : MonoBehaviour
             forward.Normalize();
             // Perpindicular vector
             Vector3 left = new Vector3(-forward.z, 0f, forward.x);
-            
+            float lerpedAngle = Mathf.Lerp(angles[currentAnchorIndex], angles[currentAnchorIndex + 1], currentLerpPoint / totalPoints);
+
+
             // --- TEMP ---
-            // left = Quaternion.AngleAxis(angle, forward) * left;
+            left = Quaternion.AngleAxis(lerpedAngle, forward) * left;
             // ------------
 
             // Add the two points
@@ -91,5 +132,29 @@ public class RoadCreator : MonoBehaviour
         mesh.triangles = triangles;
         mesh.uv = uvs;
         return mesh;
+    }
+
+    private void GenerateAnchorPointsEquivalents(Vector3[] pathPoints, Vector3[] evenlySpreadPoints)
+    {
+        for(int i = 0; i < pathPoints.Length; i++)
+        {
+            // Only look for anchor points
+            if (i % 3 != 0)
+            {
+                continue;
+            }
+
+            float shortestDistance = Mathf.Infinity;
+            int shortestPoint = -1;
+            for(int j = 0; j < evenlySpreadPoints.Length; j++)
+            {
+                if (Vector3.Distance(pathPoints[i], evenlySpreadPoints[j]) < shortestDistance)
+                {
+                    shortestPoint = j;
+                    shortestDistance = Vector3.Distance(pathPoints[i], evenlySpreadPoints[j]);
+                }
+            }
+            anchorPointEquivalents.Add(shortestPoint);
+        }
     }
 }

@@ -281,6 +281,7 @@ public class PathEditor : Editor
                         {
                             forwardDirection = Path[i + 1] - Path[i - 1];
                         }
+                        // Draw disc handle for rotation
                         Quaternion newRotation = Handles.Disc(Quaternion.identity, Path[i], forwardDirection, 1, false, 1);
 
                         if (Path.Rotations[i / 3] != newRotation)
