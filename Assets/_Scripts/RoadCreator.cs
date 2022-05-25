@@ -57,18 +57,14 @@ public class RoadCreator : MonoBehaviour
             // If the current evenly spaced point is a anchor equivalent
             if (anchorPointEquivalents.Contains(i))
             {
-                // Then we know to start lerping new rotations
-                // Get the index of the anchor point such that we can grab the angle 
-                // Store the current and next angle
-                // Get the difference between the two evenly spread points (how many points between)
-
-
                 // Get the index of the anchor equivalent
                 currentAnchorIndex = anchorPointEquivalents.IndexOf(i);
 
+                // Get the current and next evenly spaced indices that have anchor point equivalences
                 currentEvenlySpacedIndex = i;
                 nextEvenlySpacedIndex = anchorPointEquivalents[(currentAnchorIndex + 1 + anchorPointEquivalents.Count) % anchorPointEquivalents.Count];
                 
+                // Lerp only for the total points between
                 totalPoints = nextEvenlySpacedIndex - currentEvenlySpacedIndex;
                 currentLerpPoint = 0;
             }
@@ -93,12 +89,8 @@ public class RoadCreator : MonoBehaviour
             forward.Normalize();
             // Perpindicular vector
             Vector3 left = new Vector3(-forward.z, 0f, forward.x);
-            float lerpedAngle = Mathf.Lerp(angles[currentAnchorIndex], angles[currentAnchorIndex + 1], (float)currentLerpPoint / (float)totalPoints);
-
-
-            // --- TEMP ---
+            float lerpedAngle = Mathf.Lerp(angles[currentAnchorIndex], angles[(currentAnchorIndex + 1 + angles.Count) % angles.Count], (float)currentLerpPoint / (float)totalPoints);
             left = Quaternion.AngleAxis(lerpedAngle, forward) * left;
-            // ------------
 
             // Add the two points
             vertices[vertexIndex] = points[i] + left * RoadWidth * 0.5f;
