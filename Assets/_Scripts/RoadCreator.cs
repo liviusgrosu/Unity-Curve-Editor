@@ -19,30 +19,41 @@ public class RoadCreator : MonoBehaviour
     [Range(0.001f, 2f)]
     public float PathEdgeWidth = 0.001f;
 
-
+    /// <summary>
+    /// Updates the path with parameters & new data
+    /// </summary>
     public void UpdateRoad()
     {
         anchorPointEquivalents = new List<int>();
         Path path = GetComponent<PathCreator>().path;
 
+        // Generate new evenly spaced points
         Vector3[] points = path.CalculateEvenlySpacedPoints(Spacing);
-
+        
+        // Get the anchor point equivalents to the evenly spaced points
         GenerateAnchorPointsEquivalents(path.points.ToArray(), points);
+        // Generate the mesh itself
         GetComponent<MeshFilter>().mesh = CreateRoadMesh(points, path.IsClosed, path.Angles);
 
+        // Apply the texture to the mesh
         int textureRepeat = Mathf.RoundToInt(tiling * points.Length * Spacing * 0.05f);
         GetComponent<MeshRenderer>().sharedMaterial.mainTextureScale = new Vector2(1, textureRepeat);
     }
 
+    /// <summary>
+    /// Generate a road/path mesh given a set of points
+    /// </summary>
+    /// <param name="points">The list of evenly spaced points </param>
+    /// <param name="isClosed">Whether or not the path is closed </param>
+    /// <param name="angles">Rotation values of each anchor point </param>
     private Mesh CreateRoadMesh(Vector3[] points, bool isClosed, List<float> angles)
     {
-
-        // 2n
+        // 2n amount of vertices for the mesh
         Vector3[] vertices = new Vector3[points.Length * 4];
         Vector2[] uvs = new Vector2[points.Length * 4];
-        // 2(n-1)
-        // This should be 6 not 8
+        // 8(n-1) amount of triangles for the mesh
         int numberOfTriangles = 8 * (points.Length - 1) + (isClosed ? 4 : 0);
+        // 3 points for each triangle
         int[] triangles = new int[numberOfTriangles * 3];
 
         int vertexIndex = 0;
@@ -97,7 +108,7 @@ public class RoadCreator : MonoBehaviour
                 forward += points[i] - points[(i - 1 + points.Length) % points.Length];
             }
 
-            // take average of first and second conditions. Not first or last point
+            // Take average of first and second conditions. Not first or last point
             forward.Normalize();
             // Perpindicular vector
             Vector3 left = new Vector3(-forward.z, 0f, forward.x);
@@ -106,6 +117,7 @@ public class RoadCreator : MonoBehaviour
 
             Vector3 edgeDirection = new Vector3(0, PathDepth, 0);
 
+            // Add a vertex for the edges and main polygons for this segment
             vertices[vertexIndex] = points[i] + left * RoadWidth * (0.5f + PathEdgeWidth) - edgeDirection;
             vertices[vertexIndex + 1] = points[i] + left * RoadWidth * 0.5f;
             vertices[vertexIndex + 2] = points[i] - left * RoadWidth * 0.5f;
@@ -119,6 +131,7 @@ public class RoadCreator : MonoBehaviour
             uvs[vertexIndex + 2]    = new Vector2(0.9f, v);
             uvs[vertexIndex + 3]    = new Vector2(1.0f, v);
 
+            // Create a band of triangles
             if (i < points.Length - 1 || isClosed)
             {
                 // First triangle
@@ -155,7 +168,8 @@ public class RoadCreator : MonoBehaviour
             vertexIndex += 4;
             triangleIndex += 18;
         }
-
+        
+        // Create a mesh with its corresponding data
         Mesh mesh = new Mesh();
         mesh.vertices = vertices;
         mesh.triangles = triangles;
@@ -163,6 +177,11 @@ public class RoadCreator : MonoBehaviour
         return mesh;
     }
 
+    /// <summary>
+    /// Generate a list of evenly spaced points that are represented to the anchor points
+    /// </summary>
+    /// <param name="pathPoints">The list of path points which includes anchor and control points </param>
+    /// <param name="evenlySpreadPoints">The list of evenly spaced points </param>
     private void GenerateAnchorPointsEquivalents(Vector3[] pathPoints, Vector3[] evenlySpreadPoints)
     {
         for(int i = 0; i < pathPoints.Length; i++)
@@ -175,10 +194,12 @@ public class RoadCreator : MonoBehaviour
 
             float shortestDistance = Mathf.Infinity;
             int shortestPoint = -1;
-            for(int j = 0; j < evenlySpreadPoints.Length; j++)
+            // Find a evenly spaced point that is the closest to anchor point
+            for (int j = 0; j < evenlySpreadPoints.Length; j++)
             {
                 if (Vector3.Distance(pathPoints[i], evenlySpreadPoints[j]) < shortestDistance)
                 {
+                    // New point found that is closest to an anchor point
                     shortestPoint = j;
                     shortestDistance = Vector3.Distance(pathPoints[i], evenlySpreadPoints[j]);
                 }

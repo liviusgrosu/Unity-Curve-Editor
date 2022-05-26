@@ -10,6 +10,7 @@ public class RoadEditor : Editor
 
     private void OnSceneGUI()
     {
+        // Whenever a GUI element has occured, update the road
         if (creator.AutoUpdate && Event.current.type == EventType.Repaint)
         {
             creator.UpdateRoad();

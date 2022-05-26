@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
@@ -28,6 +28,7 @@ public class PathEditor : Editor
     {
         base.OnInspectorGUI();
 
+        // Button for creating a new path
         EditorGUI.BeginChangeCheck();
         if (GUILayout.Button("Create New"))
         {
@@ -36,6 +37,7 @@ public class PathEditor : Editor
             ResetSelected();
         }
 
+        // Button for toggling the paths closed state
         bool isClosed = GUILayout.Toggle(Path.IsClosed, "Toggle Closed Path");
         if (isClosed != Path.IsClosed)
         {
@@ -44,6 +46,7 @@ public class PathEditor : Editor
             ResetSelected();
         }
 
+        // Radio button for toggling the auto set feature in the path
         bool autoSetControlPoints = GUILayout.Toggle(Path.AutoSetControlPoints, "Auto Set Control Points");
         if (autoSetControlPoints != Path.AutoSetControlPoints)
         {
@@ -63,12 +66,17 @@ public class PathEditor : Editor
         Draw();
     }
 
+    /// <summary>
+    /// Find the closest point to the mouse ray
+    /// </summary>
+    /// <param name="mouseRay">Ray coming off the mouse position on screen to world </param>
     void UpdateMouseOverInfo(Ray mouseRay)
     {
         // Get direction of the mouse
         hoverOverPoint = -1;
         Vector3 mouseDir = mouseRay.direction.normalized;
 
+        // For each point find the closest one to the mouse ray
         for (int i = 0; i < Path.NumPoints; i += 3)
         {
             Vector3 point = Path[i];
@@ -93,6 +101,9 @@ public class PathEditor : Editor
         }
     }
 
+    /// <summary>
+    /// Handle input from user
+    /// </summary>
     private void Input()
     {
         Event guiEvent = Event.current;
@@ -109,21 +120,24 @@ public class PathEditor : Editor
         {
             xyPoint = mouseRay.GetPoint(hitdist);
         }
-        // When point is behind plane
+        // Take into consideration when point is behind the plane
         if (hitdist < -1.0f)
         {
             xyPoint = mouseRay.GetPoint(-hitdist);
         }
 
+        // User pressing left-click 
         if (guiEvent.type == EventType.MouseDown && guiEvent.button == 0)
         {
             if (guiEvent.shift)
             {
+                // Add a new point in between a two segments
                 if (selectedSegmentIndex != -1)
                 {
                     Undo.RecordObject(creator, "Split Segment");
                     Path.SplitSegment(xyPoint, selectedSegmentIndex);
                 }
+                // Add a new point
                 else if (!Path.IsClosed)
                 {
                     Undo.RecordObject(creator, "Add Segment");
@@ -160,8 +174,10 @@ public class PathEditor : Editor
             }
         }
 
+        // User pressing left-click and holding down the control button
         if (guiEvent.type == EventType.MouseDown && guiEvent.button == 0 && guiEvent.control)
         {
+            // Delete the point being hovered over
             if (hoverOverPoint != -1)
             {
                 Undo.RecordObject(creator, "Delete segment");
@@ -172,6 +188,7 @@ public class PathEditor : Editor
 
         if (guiEvent.type == EventType.MouseMove)
         {
+            // Find the closest segement near the mouse ray
             float smallestDistanceToSegment = segmentSelectDistanceThreshold;
             int newSelecectedSegmentIndex = -1;
 
@@ -207,27 +224,40 @@ public class PathEditor : Editor
         UpdateMouseOverInfo(mouseRay);
     }
 
+
+    /// <summary>
+    /// Find the shortest vector between two skew lines
+    /// </summary>
+    /// <param name="closestPointLine1">Point A on shortest distance vector </param>
+    /// <param name="closestPointLine2">Point B on shortest distance vector </param>
+    /// <param name="linePoint1">Sample point on skew line 1 </param>
+    /// <param name="lineVec1">Skew line 1 </param>
+    /// <param name="linePoint2">Sample point on skew line 2 </param>
+    /// <param name="lineVec2">Skew line 2 </param>
     public bool ClosestPointsOnTwoLines(out Vector3 closestPointLine1, out Vector3 closestPointLine2, Vector3 linePoint1, Vector3 lineVec1, Vector3 linePoint2, Vector3 lineVec2)
     {
         closestPointLine1 = Vector3.zero;
         closestPointLine2 = Vector3.zero;
 
+        // Find dot product on skew lines
         float a = Vector3.Dot(lineVec1, lineVec1);
         float b = Vector3.Dot(lineVec1, lineVec2);
         float e = Vector3.Dot(lineVec2, lineVec2);
 
-        float d = a * e - b * b;
+        // Find determinant
+        float determinant = a * e - b * b;
 
-        //lines are not parallel
-        if (d != 0.0f)
+        // Lines should not be parallel
+        if (determinant != 0.0f)
         {
             Vector3 r = linePoint1 - linePoint2;
             float c = Vector3.Dot(lineVec1, r);
             float f = Vector3.Dot(lineVec2, r);
 
-            float s = (b * f - c * e) / d;
-            float t = (a * f - c * b) / d;
+            float s = (b * f - c * e) / determinant;
+            float t = (a * f - c * b) / determinant;
 
+            // Get the points of shortest vector
             closestPointLine1 = linePoint1 + lineVec1 * s;
             closestPointLine2 = linePoint2 + lineVec2 * t;
 
@@ -237,8 +267,12 @@ public class PathEditor : Editor
         return false;
     }
 
+    /// <summary>
+    /// Draw any GUI elements needed
+    /// </summary>
     private void Draw()
     {
+        // Draw bezier curve from each segment
         for(int i = 0; i < Path.NumSegments; i++)
         {
             Vector3[] points = Path.GetPointsInSegement(i);
@@ -248,16 +282,18 @@ public class PathEditor : Editor
             Handles.DrawBezier(points[0], points[3], points[1], points[2], segmentColour, null, 2f);
         }
 
-        
+        // Draw appropriate handles for selected anchor point and its corresponding control points
         for(int i = 0; i < Path.NumPoints; i++)
         {
             if (i % 3 == 0 || (selectedAnchorPoint != -1 && (selectedAnchorPoint == i || selectedControlPointA == i || selectedControlPointB == i)))
             {
+                // Display a sphere for each point
                 Handles.color = (i % 3 == 0) ? creator.anchorColour : creator.controlColour;
                 Handles.SphereHandleCap(0, Path[i], Quaternion.LookRotation(Vector3.up), 0.1f, EventType.Repaint);
                 // Select the anchor point and its corresponding control points
                 if (selectedAnchorPoint != -1 && (selectedAnchorPoint == i || selectedControlPointA == i || selectedControlPointB == i))
                 {
+                    // Display a handle for each point such that users can use to move it around
                     Vector3 newPosition = Handles.PositionHandle(Path[i], Quaternion.identity);
                     if (Path[i] != newPosition) 
                     {
@@ -284,14 +320,21 @@ public class PathEditor : Editor
                         // Draw disc handle for rotation
                         Quaternion newRotation = Handles.Disc(Quaternion.identity, Path[i], forwardDirection, 1, false, 1);
 
+                        // Rotate the points rotation when the disc has been manipulated
                         if (Path.Rotations[i / 3] != newRotation)
                         {
                             Undo.RecordObject(creator, "RotatePoint");
                             Path.RotatePoint(i / 3, newRotation);
                         }
 
-                        Handles.color = Color.cyan;
-                        Handles.Label(Path[i] + new Vector3(0, 1.1f, 0), $"{i / 3} - {Path.Angles[i / 3]}");
+                        // Get the arcs up vector
+                        Vector3 pointLeft = Vector3.Cross(forwardDirection, Vector3.up);
+                        Vector3 pointUp = Vector3.Cross(pointLeft, forwardDirection);
+
+                        // Display the points angle right above the arch
+                        GUIStyle textStyle = new GUIStyle();
+                        textStyle.normal.textColor = Color.cyan;
+                        Handles.Label(Path[i] + pointUp.normalized * 1.25f, $"Δ {Path.Angles[i / 3]}", textStyle);
                     }
                 }
             }
@@ -311,6 +354,7 @@ public class PathEditor : Editor
 
     private void OnEnable()
     {
+        // Create new path once object is enabled and no previous path exists
         creator = (PathCreator)target;
         if (creator.path == null)
         {
@@ -318,6 +362,9 @@ public class PathEditor : Editor
         }
     }
 
+    /// <summary>
+    /// Reset the previously selected points
+    /// </summary>
     private void ResetSelected()
     {
         selectedAnchorPoint = -1;

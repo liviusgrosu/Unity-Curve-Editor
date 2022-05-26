@@ -16,12 +16,17 @@ public class PathCreator : MonoBehaviour
     public float controlDiameter = 0.075f;
     public bool displayControlPoints = true;
 
-
+    /// <summary>
+    /// Creates a new point given the objects position
+    /// </summary>
     public void CreatePath()
     {
         path = new Path(transform.position);
     }
 
+    /// <summary>
+    /// Resets the path by generating a new one
+    /// </summary>
     private void Reset()
     {
         CreatePath();

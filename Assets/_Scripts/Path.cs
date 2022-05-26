@@ -8,16 +8,17 @@ public class Path
     [SerializeField, HideInInspector]
     public List<Vector3> points;
     [SerializeField, HideInInspector]
-    List<Quaternion> rotations;
+    private List<Quaternion> rotations;
     [SerializeField, HideInInspector]
     public List<float> Angles;
     [SerializeField, HideInInspector]
-    bool isClosed;
+    private bool isClosed;
     [SerializeField, HideInInspector]
-    bool autoSetControlPoints;
+    private bool autoSetControlPoints;
 
     public Path(Vector3 centre)
     {
+        // Create points for cubic bezier curve
         points = new List<Vector3>
         {
             centre + Vector3.left,
@@ -26,12 +27,12 @@ public class Path
             centre + (Vector3.right)
         };
 
+        // Capture the default rotations for each anchor point
         rotations = new List<Quaternion>
         {
             Quaternion.identity,
             Quaternion.identity
         };
-
         Angles = new List<float>
         {
             0f,
@@ -72,7 +73,8 @@ public class Path
                     // Adding the missing controls points for first and last anchor points
                     points.Add(points[points.Count - 1] * 2 - points[points.Count - 2]);
                     points.Add(points[0] * 2 - points[1]);
-
+                    
+                    // Auto set the first and last anchor points if enabled
                     if (autoSetControlPoints)
                     {
                         AutoSetAnchorControlPoints(0);
@@ -81,7 +83,7 @@ public class Path
                 }
                 else
                 {
-                    // Same thing as removing first and last control points. RemoveRange overlaps
+                    // Same thing as removing first and last control points
                     points.RemoveRange(points.Count - 2, 2);
                     if (autoSetControlPoints)
                     {
@@ -127,26 +129,40 @@ public class Path
         }
     }
 
+    /// <summary>
+    /// Adds a new segment at the end of the path 
+    /// </summary>
+    /// <param name="anchorPos">New anchor point position </param>
     public void AddSegement(Vector3 anchorPos)
     {
+        // Add new points
         // P3 + (P3 - P2) => (P3 * 2) - P2
         points.Add(points[points.Count - 1] * 2 - points[points.Count - 2]);
         points.Add((points[points.Count - 1] + anchorPos) * 0.5f);
         points.Add(anchorPos);
 
+        // Auto set the new points
         if (autoSetControlPoints)
         {
             AutoSetAllAffectedControlPoints(points.Count - 1);
         }
 
+        // Add in rotation data for each point
         rotations.Add(Quaternion.identity);
         Angles.Add(0);
     }
 
+    /// <summary>
+    /// Adds a new segment in between two anchor points
+    /// </summary>
+    /// <param name="anchorPos">New anchor point position </param>
+    /// <param name="segmentIndex">New intermediate segment index </param>
     public void SplitSegment(Vector3 anchorPosition, int segmentIndex)
     {
+        // Insert new points
         points.InsertRange(segmentIndex * 3 + 2, new Vector3[] { Vector3.zero, anchorPosition, Vector3.zero });
         
+        // Auto set those points
         if (autoSetControlPoints)
         {
             AutoSetAllAffectedControlPoints(segmentIndex * 3 + 3);
@@ -156,23 +172,31 @@ public class Path
             AutoSetAnchorControlPoints(segmentIndex * 3 + 3);
         }
 
+        // Add rotation data to those points
         rotations.Add(Quaternion.identity);
         Angles.Add(0);
     }
 
+    /// <summary>
+    /// Removes a segment
+    /// </summary>
+    /// <param name="anchorIndex">The anchor index used to delete a segment from </param>
     public void DeleteSegment(int anchorIndex)
     {
+        // Must have more then 2 points to delete
         if(NumSegments > 2 || !isClosed && NumSegments > 1)
         {
             if (anchorIndex == 0)
             {
                 if (isClosed)
                 {
+                    //Delete the first points but assign the next point as the last
                     points[points.Count - 1] = points[2];
                     points.RemoveRange(0, 3);
                 }
                 points.RemoveRange(0, 3);
             }
+            // Remove last 3 points
             else if (anchorIndex == points.Count - 1 && !isClosed)
             {
                 points.RemoveRange(anchorIndex - 2, 3);
@@ -182,12 +206,18 @@ public class Path
                 points.RemoveRange(anchorIndex - 1, 3);
             }
         }
+        // Remove rotation data
         rotations.RemoveAt(anchorIndex / 3);
         Angles.RemoveAt(anchorIndex / 3);
     }
 
+    /// <summary>
+    /// Gets all points in a segment
+    /// </summary>
+    /// <param name="i">Starting index of the segment </param>
     public Vector3[] GetPointsInSegement(int i)
     {
+        // Get the next 4 points given i
         return new Vector3[] 
         { 
             points[i * 3], 
@@ -197,52 +227,67 @@ public class Path
         };
     }
 
-    public void RotatePoint(int i, Quaternion rotation)
+    /// <summary>
+    /// Rotates a point
+    /// </summary>
+    /// <param name="anchorIndex">That anchor point index to rotate </param>
+    /// <param name="rotation">New point rotation </param>
+    public void RotatePoint(int anchorIndex, Quaternion rotation)
     {
         float angle = 0f;
-
         Vector3 angleAxis = Vector3.zero;
-        (rotation * Quaternion.Inverse(rotations[i])).ToAngleAxis(out angle, out angleAxis);
+        // Get the angle compared to old and new rotation values
+        (rotation * Quaternion.Inverse(rotations[anchorIndex])).ToAngleAxis(out angle, out angleAxis);
         if (Vector3.Angle(Vector3.forward, angleAxis) > 90f)
         {
             angle = -angle;
         }
-        rotations[i] = rotation;
-        Angles[i] = angle;
+        // Save new rotation angle values
+        rotations[anchorIndex] = rotation;
+        Angles[anchorIndex] = angle;
     }
 
-    public void MovePoint(int i, Vector3 position)
+    /// <summary>
+    /// Moves a point
+    /// </summary>
+    /// <param name="pointIndex">Point index </param>
+    /// <param name="position">New point position </param>
+    public void MovePoint(int pointIndex, Vector3 position)
     {
-        Vector3 deltaMove = position - points[i];
-        if (i % 3 == 0 || !autoSetControlPoints)
+        // Change of movement
+        Vector3 deltaMove = position - points[pointIndex];
+        if (pointIndex % 3 == 0 || !autoSetControlPoints)
         {
-            points[i] = position;
+            // Set the new anchor points position
+            points[pointIndex] = position;
 
             if (autoSetControlPoints)
             {
-                AutoSetAllAffectedControlPoints(i);
+                AutoSetAllAffectedControlPoints(pointIndex);
             }
             else
             {
                 // Moving an anchor point
-                if (i % 3 == 0)
+                if (pointIndex % 3 == 0)
                 {
                     // Move points connected to anchor the same way
-                    if (i + 1 < points.Count || isClosed)
+                    if (pointIndex + 1 < points.Count || isClosed)
                     {
-                        points[LoopIndex(i + 1)] += deltaMove;
+                        points[LoopIndex(pointIndex + 1)] += deltaMove;
                     }
-                    if (i - 1 > 0 || isClosed)
+                    if (pointIndex - 1 > 0 || isClosed)
                     {
-                        points[LoopIndex(i - 1)] += deltaMove;
+                        points[LoopIndex(pointIndex - 1)] += deltaMove;
                     }
                 }
                 else
                 {
-                    bool isNextPointIsAnchor = (i + 1) % 3 == 0;
-                    int correspondingControlIndex = isNextPointIsAnchor ? i + 2 : i - 2;
-                    int anchorIndex = isNextPointIsAnchor ? i + 1 : i - 1;
+                    // Get the corresponding control index
+                    bool isNextPointIsAnchor = (pointIndex + 1) % 3 == 0;
+                    int correspondingControlIndex = isNextPointIsAnchor ? pointIndex + 2 : pointIndex - 2;
+                    int anchorIndex = isNextPointIsAnchor ? pointIndex + 1 : pointIndex - 1;
 
+                    // Move the corresponding control points tied to anchor alongst with it
                     if (correspondingControlIndex >= 0 && correspondingControlIndex < points.Count || isClosed)
                     {
                         float distance = (points[LoopIndex(anchorIndex)] - points[LoopIndex(correspondingControlIndex)]).magnitude;
@@ -254,6 +299,12 @@ public class Path
         }
     }
 
+    /// <summary>
+    /// Get a list of evenly spaced points alongst the path
+    /// </summary>
+    /// <param name="spacing">The equal distance between each point </param>
+    /// <param name="resolution">The accuracy of the newly spaced point </param>
+    /// <returns> List of evenly spaced points </returns>
     public Vector3[] CalculateEvenlySpacedPoints(float spacing, float resolution = 1)
     {
         List<Vector3> evenlySpacedPoints = new List<Vector3>();
@@ -264,7 +315,9 @@ public class Path
         for (int segmentIndex = 0; segmentIndex < NumSegments; segmentIndex++)
         {
             Vector3[] points = GetPointsInSegement(segmentIndex);
+            // Get the length from point A to B around the curve
             float controlNetLength = Vector3.Distance(points[0], points[1]) + Vector3.Distance(points[1], points[2]) + Vector3.Distance(points[2], points[3]);
+            // Using the estimate from before, calculate the estimated curves length 
             float estimatedCurveLength = Vector3.Distance(points[0], points[3]) + controlNetLength / 2f;
             int divisions = Mathf.CeilToInt(estimatedCurveLength * resolution * 10f);
 
@@ -276,12 +329,13 @@ public class Path
                 Vector3 pointOnCurve = Bezier.EvaluateCubic(points[0], points[1], points[2], points[3], t);
                 // Get distance from the last point
                 distanceSinceLastEvenPoint += Vector3.Distance(previousPoint, pointOnCurve);
-
+                
                 while (distanceSinceLastEvenPoint >= spacing)
                 {
                     // If overshot the distance to the next point, take the new point back by how much it overshot
                     float overshootDistance = distanceSinceLastEvenPoint - spacing;
                     Vector3 newEvenlySpacedPoint = pointOnCurve + (previousPoint - pointOnCurve).normalized * overshootDistance;
+                    // Add new points since theres a gap in the overshoot
                     evenlySpacedPoints.Add(newEvenlySpacedPoint);
                     distanceSinceLastEvenPoint = overshootDistance;
                     previousPoint = newEvenlySpacedPoint;
@@ -294,8 +348,13 @@ public class Path
         return evenlySpacedPoints.ToArray();
     }
 
+    /// <summary>
+    /// Auto set the neighbouring points positions relative to the given anchor point
+    /// </summary>
+    /// <param name="updateAnchorIndex">The anchor point to base of its position </param>
     private void AutoSetAllAffectedControlPoints(int updateAnchorIndex)
     {
+        // Apply this calculation to the immediate points next to the given anchor point
         for (int i = updateAnchorIndex - 3; i <= updateAnchorIndex + 3; i += 3)
         {
             if (i >= 0 && i < points.Count || isClosed)
@@ -307,6 +366,9 @@ public class Path
         AutoSetStartAndEndControls();
     }
 
+    /// <summary>
+    /// Auto set the all points in path
+    /// </summary>
     private void AutoSetAllControlPoints()
     {
         for(int i = 0; i < points.Count; i += 3)
@@ -317,6 +379,10 @@ public class Path
         AutoSetStartAndEndControls();
     }
 
+    /// <summary>
+    /// Auto set the specified anchor point
+    /// </summary>
+    /// <param name="anchorIndex">The anchor point to auto set </param>
     private void AutoSetAnchorControlPoints(int anchorIndex)
     {
         Vector3 anchorPosition = points[anchorIndex];
@@ -352,6 +418,9 @@ public class Path
         }
     }
 
+    /// <summary>
+    /// Auto set the first and last points in the path
+    /// </summary>
     private void AutoSetStartAndEndControls()
     {
         if (!isClosed)
@@ -361,9 +430,14 @@ public class Path
         }
     }
 
-    private int LoopIndex(int i)
+    /// <summary>
+    /// Provide a wrapped index
+    /// </summary>
+    /// <param name="pointIndex">Given point index</param>
+    /// <returns> Wrapped index </returns>
+    private int LoopIndex(int pointIndex)
     {
         // Adding points.count to I such that if I is negative, this return is still valid
-        return (i + points.Count) % points.Count;
+        return (pointIndex + points.Count) % points.Count;
     }
 }
