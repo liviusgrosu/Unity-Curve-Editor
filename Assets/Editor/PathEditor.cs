@@ -172,7 +172,7 @@ public class PathEditor : Editor
 
         if (guiEvent.type == EventType.MouseMove)
         {
-            float smallestDistanceToSegment = Mathf.Infinity;
+            float smallestDistanceToSegment = segmentSelectDistanceThreshold;
             int newSelecectedSegmentIndex = -1;
 
             for (int i = 0; i < Path.NumSegments; i++)
