@@ -30,11 +30,11 @@ An editor that creates complex curves with various settings/parameters
 
 ![image](https://raw.githubusercontent.com/liviusgrosu/unity-curve-editor-demo/main/Pictures/Path%20creator%20editor.PNG)
 
-1) Anchor Colour: Change colour of the anchor points
-2) Control Colour: Change colour of the control points
-3) Segment Colour: Change colour of the segment curve
-4) Selected Segment Colour: Change colour of the selected segment curve
-5) Create New Button: Create new path
+- Anchor Colour: Change colour of the anchor points
+- Control Colour: Change colour of the control points
+- Segment Colour: Change colour of the segment curve
+- Selected Segment Colour: Change colour of the selected segment curve
+- Create New Button: Create new path
 
 ![image](https://raw.githubusercontent.com/liviusgrosu/unity-curve-editor-demo/main/Pictures/Road%20creator%20editor.PNG)
 
