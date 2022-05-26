@@ -2,6 +2,7 @@
 
 ##### Table of Contents  
 * [Description](#description)
+* [Controls](#controls)
 * [Algorithm](#algorithm)
 * [Articles](#articles)
 
@@ -31,11 +32,19 @@ Using the same coordinates for the vertices, the UV mesh coordinates can be cons
 // Show untextured road
 // Show textured road
 
+Next, the road mesh needs to include an additional working axis; the Z axis! Converting this to 3D space wasn't so much as a challenge as converting all vector2 types to vector3. However the biggest obstacle was converting HandleUtility.DistancePointBezier to a functional 3D counter-part. Now the solution I came up with isn't an exact coorelation but it gets the jump done. Essentially, a vector between each anchor is created and its compared to the mouse ray. The shortest distance between the two is calcualted and whichever segment vector is the closet becomes the selected. 
+
+// Show 3d.png
+// Show shortest distance.png
+
+Rotation data was also added to each anchor point which allows users the ability to parts of the path. This is done why drawing a disc arc around the point in the direction of the previous and next 'evenly spaced point', and taking in the difference between the old and new rotation when the arc is dragged.
+
+// Show rotation arc.png
 
 
 rotation 
 
-segement selection
+
 
 auto select
 
