@@ -160,7 +160,7 @@ public class PathEditor : Editor
             }
         }
 
-        if (guiEvent.type == EventType.MouseDown && guiEvent.button == 1)
+        if (guiEvent.type == EventType.MouseDown && guiEvent.button == 0 && guiEvent.control)
         {
             if (hoverOverPoint != -1)
             {

@@ -182,8 +182,8 @@ public class Path
                 points.RemoveRange(anchorIndex - 1, 3);
             }
         }
-        rotations.RemoveAt(anchorIndex);
-        Angles.RemoveAt(anchorIndex);
+        rotations.RemoveAt(anchorIndex / 3);
+        Angles.RemoveAt(anchorIndex / 3);
     }
 
     public Vector3[] GetPointsInSegement(int i)
