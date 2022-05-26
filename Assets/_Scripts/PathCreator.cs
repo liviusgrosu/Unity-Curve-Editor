@@ -12,10 +12,6 @@ public class PathCreator : MonoBehaviour
     public Color segmentColour = Color.green;
     public Color selectedSegmentColour = Color.yellow;
 
-    public float anchorDiameter = 0.1f;
-    public float controlDiameter = 0.075f;
-    public bool displayControlPoints = true;
-
     /// <summary>
     /// Creates a new point given the objects position
     /// </summary>
