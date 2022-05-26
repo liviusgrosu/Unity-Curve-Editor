@@ -6,28 +6,52 @@ using UnityEngine;
 public class Path
 {
     [SerializeField, HideInInspector]
-    List<Vector2> points;
+    public List<Vector3> points;
+    [SerializeField, HideInInspector]
+    List<Quaternion> rotations;
+    [SerializeField, HideInInspector]
+    public List<float> Angles;
     [SerializeField, HideInInspector]
     bool isClosed;
     [SerializeField, HideInInspector]
     bool autoSetControlPoints;
 
-    public Path(Vector2 centre)
+    public Path(Vector3 centre)
     {
-        points = new List<Vector2>
+        points = new List<Vector3>
         {
-            centre + Vector2.left,
-            centre + (Vector2.left + Vector2.up) * 0.5f,
-            centre + (Vector2.right + Vector2.down) * 0.5f,
-            centre + (Vector2.right)
+            centre + Vector3.left,
+            centre + (Vector3.left + Vector3.forward) * 0.5f,
+            centre + (Vector3.right + Vector3.back) * 0.5f,
+            centre + (Vector3.right)
+        };
+
+        rotations = new List<Quaternion>
+        {
+            Quaternion.identity,
+            Quaternion.identity
+        };
+
+        Angles = new List<float>
+        {
+            0f,
+            0f
         };
     }
 
-    public Vector2 this[int i]
+    public Vector3 this[int i]
     {
         get
         {
             return points[i];
+        }
+    }
+
+    public List<Quaternion> Rotations
+    {
+        get
+        {
+            return rotations;
         }
     }
 
@@ -103,7 +127,7 @@ public class Path
         }
     }
 
-    public void AddSegement(Vector2 anchorPos)
+    public void AddSegement(Vector3 anchorPos)
     {
         // P3 + (P3 - P2) => (P3 * 2) - P2
         points.Add(points[points.Count - 1] * 2 - points[points.Count - 2]);
@@ -114,11 +138,15 @@ public class Path
         {
             AutoSetAllAffectedControlPoints(points.Count - 1);
         }
+
+        rotations.Add(Quaternion.identity);
+        Angles.Add(0);
     }
 
-    public void SplitSegment(Vector2 anchorPosition, int segmentIndex)
+    public void SplitSegment(Vector3 anchorPosition, int segmentIndex)
     {
-        points.InsertRange(segmentIndex * 3 + 2, new Vector2[] { Vector2.zero, anchorPosition, Vector2.zero });
+        points.InsertRange(segmentIndex * 3 + 2, new Vector3[] { Vector3.zero, anchorPosition, Vector3.zero });
+        
         if (autoSetControlPoints)
         {
             AutoSetAllAffectedControlPoints(segmentIndex * 3 + 3);
@@ -127,6 +155,9 @@ public class Path
         {
             AutoSetAnchorControlPoints(segmentIndex * 3 + 3);
         }
+
+        rotations.Add(Quaternion.identity);
+        Angles.Add(0);
     }
 
     public void DeleteSegment(int anchorIndex)
@@ -151,11 +182,13 @@ public class Path
                 points.RemoveRange(anchorIndex - 1, 3);
             }
         }
+        rotations.RemoveAt(anchorIndex / 3);
+        Angles.RemoveAt(anchorIndex / 3);
     }
 
-    public Vector2[] GetPointsInSegement(int i)
+    public Vector3[] GetPointsInSegement(int i)
     {
-        return new Vector2[] 
+        return new Vector3[] 
         { 
             points[i * 3], 
             points[i * 3 + 1], 
@@ -164,9 +197,23 @@ public class Path
         };
     }
 
-    public void MovePoint(int i, Vector2 position)
+    public void RotatePoint(int i, Quaternion rotation)
     {
-        Vector2 deltaMove = position - points[i];
+        float angle = 0f;
+
+        Vector3 angleAxis = Vector3.zero;
+        (rotation * Quaternion.Inverse(rotations[i])).ToAngleAxis(out angle, out angleAxis);
+        if (Vector3.Angle(Vector3.forward, angleAxis) > 90f)
+        {
+            angle = -angle;
+        }
+        rotations[i] = rotation;
+        Angles[i] = angle;
+    }
+
+    public void MovePoint(int i, Vector3 position)
+    {
+        Vector3 deltaMove = position - points[i];
         if (i % 3 == 0 || !autoSetControlPoints)
         {
             points[i] = position;
@@ -199,7 +246,7 @@ public class Path
                     if (correspondingControlIndex >= 0 && correspondingControlIndex < points.Count || isClosed)
                     {
                         float distance = (points[LoopIndex(anchorIndex)] - points[LoopIndex(correspondingControlIndex)]).magnitude;
-                        Vector2 direction = (points[LoopIndex(anchorIndex)] - position).normalized;
+                        Vector3 direction = (points[LoopIndex(anchorIndex)] - position).normalized;
                         points[LoopIndex(correspondingControlIndex)] = points[LoopIndex(anchorIndex)] + direction * distance;
                     }
                 }
@@ -207,18 +254,18 @@ public class Path
         }
     }
 
-    public Vector2[] CalculateEvenlySpacedPoints(float spacing, float resolution = 1)
+    public Vector3[] CalculateEvenlySpacedPoints(float spacing, float resolution = 1)
     {
-        List<Vector2> evenlySpacedPoints = new List<Vector2>();
+        List<Vector3> evenlySpacedPoints = new List<Vector3>();
         evenlySpacedPoints.Add(points[0]);
-        Vector2 previousPoint = points[0];
+        Vector3 previousPoint = points[0];
         float distanceSinceLastEvenPoint = 0;
 
         for (int segmentIndex = 0; segmentIndex < NumSegments; segmentIndex++)
         {
-            Vector2[] points = GetPointsInSegement(segmentIndex);
-            float controlNetLength = Vector2.Distance(points[0], points[1]) + Vector2.Distance(points[1], points[2]) + Vector2.Distance(points[2], points[3]);
-            float estimatedCurveLength = Vector2.Distance(points[0], points[3]) + controlNetLength / 2f;
+            Vector3[] points = GetPointsInSegement(segmentIndex);
+            float controlNetLength = Vector3.Distance(points[0], points[1]) + Vector3.Distance(points[1], points[2]) + Vector3.Distance(points[2], points[3]);
+            float estimatedCurveLength = Vector3.Distance(points[0], points[3]) + controlNetLength / 2f;
             int divisions = Mathf.CeilToInt(estimatedCurveLength * resolution * 10f);
 
             float t = 0;
@@ -226,15 +273,15 @@ public class Path
             {
                 t += 1f / divisions;
                 // Get the point on the curve
-                Vector2 pointOnCurve = Bezier.EvaluateCubic(points[0], points[1], points[2], points[3], t);
+                Vector3 pointOnCurve = Bezier.EvaluateCubic(points[0], points[1], points[2], points[3], t);
                 // Get distance from the last point
-                distanceSinceLastEvenPoint += Vector2.Distance(previousPoint, pointOnCurve);
+                distanceSinceLastEvenPoint += Vector3.Distance(previousPoint, pointOnCurve);
 
                 while (distanceSinceLastEvenPoint >= spacing)
                 {
                     // If overshot the distance to the next point, take the new point back by how much it overshot
                     float overshootDistance = distanceSinceLastEvenPoint - spacing;
-                    Vector2 newEvenlySpacedPoint = pointOnCurve + (previousPoint - pointOnCurve).normalized * overshootDistance;
+                    Vector3 newEvenlySpacedPoint = pointOnCurve + (previousPoint - pointOnCurve).normalized * overshootDistance;
                     evenlySpacedPoints.Add(newEvenlySpacedPoint);
                     distanceSinceLastEvenPoint = overshootDistance;
                     previousPoint = newEvenlySpacedPoint;
@@ -272,14 +319,14 @@ public class Path
 
     private void AutoSetAnchorControlPoints(int anchorIndex)
     {
-        Vector2 anchorPosition = points[anchorIndex];
-        Vector2 direction = Vector2.zero;
+        Vector3 anchorPosition = points[anchorIndex];
+        Vector3 direction = Vector3.zero;
         float[] neighbourDistances = new float[2];
 
         if(anchorIndex - 3 >= 0 || isClosed)
         {
             // Get the vector from current anchor to the previous anchor point
-            Vector2 offset = points[LoopIndex(anchorIndex - 3)] - anchorPosition;
+            Vector3 offset = points[LoopIndex(anchorIndex - 3)] - anchorPosition;
             direction += offset.normalized;
             neighbourDistances[0] = offset.magnitude;
         }
@@ -287,7 +334,7 @@ public class Path
         if (anchorIndex + 3 >= 0 || isClosed)
         {
             // Get the vector from current anchor to the next anchor point
-            Vector2 offset = points[LoopIndex(anchorIndex + 3)] - anchorPosition;
+            Vector3 offset = points[LoopIndex(anchorIndex + 3)] - anchorPosition;
             direction -= offset.normalized;
             neighbourDistances[1] = -offset.magnitude;
         }
