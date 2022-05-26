@@ -199,7 +199,6 @@ public class Path
 
     public void RotatePoint(int i, Quaternion rotation)
     {
-
         float angle = 0f;
 
         Vector3 angleAxis = Vector3.zero;

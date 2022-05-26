@@ -64,8 +64,16 @@ public class RoadCreator : MonoBehaviour
                 currentEvenlySpacedIndex = i;
                 nextEvenlySpacedIndex = anchorPointEquivalents[(currentAnchorIndex + 1 + anchorPointEquivalents.Count) % anchorPointEquivalents.Count];
                 
-                // Lerp only for the total points between
-                totalPoints = nextEvenlySpacedIndex - currentEvenlySpacedIndex;
+                if (isClosed && currentAnchorIndex == anchorPointEquivalents.Count - 1)
+                {
+                    // Calculate the number points if they the next evenly spaced index is 0
+                    totalPoints = points.Length - currentEvenlySpacedIndex;
+                }
+                else
+                {
+                    // Lerp only for the total points between
+                    totalPoints = Mathf.Abs(nextEvenlySpacedIndex - currentEvenlySpacedIndex);
+                }
                 currentLerpPoint = 0;
             }
             else

@@ -289,6 +289,9 @@ public class PathEditor : Editor
                             Undo.RecordObject(creator, "RotatePoint");
                             Path.RotatePoint(i / 3, newRotation);
                         }
+
+                        Handles.color = Color.cyan;
+                        Handles.Label(Path[i] + new Vector3(0, 1.1f, 0), $"{i / 3} - {Path.Angles[i / 3]}");
                     }
                 }
             }
