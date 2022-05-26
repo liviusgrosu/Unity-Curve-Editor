@@ -13,6 +13,12 @@ public class RoadCreator : MonoBehaviour
     public bool AutoUpdate;
     public float tiling = 1f;
     private List<int> anchorPointEquivalents;
+    [Header("Path Shape")]
+    [Range(0.001f, 2f)]
+    public float PathDepth = 0.001f;
+    [Range(0.001f, 2f)]
+    public float PathEdgeWidth = 0.001f;
+
 
     public void UpdateRoad()
     {
@@ -22,9 +28,6 @@ public class RoadCreator : MonoBehaviour
         Vector3[] points = path.CalculateEvenlySpacedPoints(Spacing);
 
         GenerateAnchorPointsEquivalents(path.points.ToArray(), points);
-
-        // TODO: grab the rotations here as well
-        // Pass angles to createroadmesh
         GetComponent<MeshFilter>().mesh = CreateRoadMesh(points, path.IsClosed, path.Angles);
 
         int textureRepeat = Mathf.RoundToInt(tiling * points.Length * Spacing * 0.05f);
@@ -33,16 +36,18 @@ public class RoadCreator : MonoBehaviour
 
     private Mesh CreateRoadMesh(Vector3[] points, bool isClosed, List<float> angles)
     {
+
         // 2n
-        Vector3[] vertices = new Vector3[points.Length * 2];
-        Vector2[] uvs = new Vector2[points.Length * 2];
+        Vector3[] vertices = new Vector3[points.Length * 4];
+        Vector2[] uvs = new Vector2[points.Length * 4];
         // 2(n-1)
-        int numberOfTriangles = 2 * (points.Length - 1) + (isClosed ? 2 : 0);
+        // This should be 6 not 8
+        int numberOfTriangles = 8 * (points.Length - 1) + (isClosed ? 4 : 0);
         int[] triangles = new int[numberOfTriangles * 3];
+
         int vertexIndex = 0;
         int triangleIndex = 0;
 
-        // ---
         int currentAnchorIndex = 0;
 
         int currentEvenlySpacedIndex = 0;
@@ -50,7 +55,6 @@ public class RoadCreator : MonoBehaviour
         
         int totalPoints = 0;
         int currentLerpPoint = 0;
-        // ---
 
         for (int i = 0; i < points.Length; i++)
         {
@@ -100,31 +104,56 @@ public class RoadCreator : MonoBehaviour
             float lerpedAngle = Mathf.Lerp(angles[currentAnchorIndex], angles[(currentAnchorIndex + 1 + angles.Count) % angles.Count], (float)currentLerpPoint / (float)totalPoints);
             left = Quaternion.AngleAxis(lerpedAngle, forward) * left;
 
-            // Add the two points
-            vertices[vertexIndex] = points[i] + left * RoadWidth * 0.5f;
-            vertices[vertexIndex + 1] = points[i] - left * RoadWidth * 0.5f;
+            Vector3 edgeDirection = new Vector3(0, PathDepth, 0);
+
+            vertices[vertexIndex] = points[i] + left * RoadWidth * (0.5f + PathEdgeWidth) - edgeDirection;
+            vertices[vertexIndex + 1] = points[i] + left * RoadWidth * 0.5f;
+            vertices[vertexIndex + 2] = points[i] - left * RoadWidth * 0.5f;
+            vertices[vertexIndex + 3] = points[i] - left * RoadWidth * (0.5f + PathEdgeWidth) - edgeDirection;
 
             // Add each UV coordinate based off how complete the path is
             float completionPercent = i / (float)(points.Length - 1);
             float v = 1 - Mathf.Abs(2 * completionPercent - 1);
-            uvs[vertexIndex] = new Vector2(0, v);
-            uvs[vertexIndex + 1] = new Vector2(1, v);
+            uvs[vertexIndex]        = new Vector2(0.0f, v);
+            uvs[vertexIndex + 1]    = new Vector2(0.1f, v);
+            uvs[vertexIndex + 2]    = new Vector2(0.9f, v);
+            uvs[vertexIndex + 3]    = new Vector2(1.0f, v);
 
             if (i < points.Length - 1 || isClosed)
             {
                 // First triangle
-                triangles[triangleIndex] = vertexIndex;
-                triangles[triangleIndex + 1] = (vertexIndex + 2) % vertices.Length;
-                triangles[triangleIndex + 2] = vertexIndex + 1;
+                triangles[triangleIndex]        = vertexIndex;
+                triangles[triangleIndex + 1]    = (vertexIndex + 4) % vertices.Length;
+                triangles[triangleIndex + 2]    = vertexIndex + 1;
 
                 // Second triangle
-                triangles[triangleIndex + 3] = vertexIndex + 1;
-                triangles[triangleIndex + 4] = (vertexIndex + 2) % vertices.Length;
-                triangles[triangleIndex + 5] = (vertexIndex + 3) % vertices.Length;
+                triangles[triangleIndex + 3]    = vertexIndex + 1;
+                triangles[triangleIndex + 4]    = (vertexIndex + 4) % vertices.Length;
+                triangles[triangleIndex + 5]    = (vertexIndex + 5) % vertices.Length;
+
+                // Third triangle
+                triangles[triangleIndex + 6] = vertexIndex + 1;
+                triangles[triangleIndex + 7] = (vertexIndex + 5) % vertices.Length;
+                triangles[triangleIndex + 8] = (vertexIndex + 2) % vertices.Length;
+
+                // Fourth triangle
+                triangles[triangleIndex + 9] = vertexIndex + 2;
+                triangles[triangleIndex + 10] = (vertexIndex + 5) % vertices.Length;
+                triangles[triangleIndex + 11] = (vertexIndex + 6) % vertices.Length;
+
+                // Fifth triangle
+                triangles[triangleIndex + 12] = vertexIndex + 2;
+                triangles[triangleIndex + 13] = (vertexIndex + 6) % vertices.Length;
+                triangles[triangleIndex + 14] = (vertexIndex + 3) % vertices.Length;
+
+                // Sixth triangle
+                triangles[triangleIndex + 15] = vertexIndex + 3;
+                triangles[triangleIndex + 16] = (vertexIndex + 6) % vertices.Length;
+                triangles[triangleIndex + 17] = (vertexIndex + 7) % vertices.Length;
             }
 
-            vertexIndex += 2;
-            triangleIndex += 6;
+            vertexIndex += 4;
+            triangleIndex += 18;
         }
 
         Mesh mesh = new Mesh();
