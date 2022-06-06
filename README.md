@@ -1,4 +1,4 @@
-# Path Creator
+# Unity Curve Editor
 
 ![image](https://raw.githubusercontent.com/liviusgrosu/unity-curve-editor-demo/main/Pictures/Top%20down%20road.PNG)
 
